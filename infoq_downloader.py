@@ -59,7 +59,10 @@ html_doc.cssselect('#wrapper')[0].attrib['style'] = 'background: none'
 content = lxml.html.tostring(html_doc).decode('utf-8')
 
 # Make slides links point to local copies
-slides_re = re.compile(r"'(/resource/presentations/[^']*?/en/slides/[^']*?)'")
+slides_re = re.compile(r"'([^']*?/resource/presentations/[^']*?/en/slides/[^']*?)'")
+# slides_re.match(content)
+# print(content[:10000])
+print('{0}'.format(slides_re.match(content)))
 slides = slides_re.findall(content)
 
 # Create a directory for the downloaded presentation if it doesn't exist
@@ -71,6 +74,7 @@ if isinstance(title, text_type):
     normalized_title = unicodedata.normalize('NFKD', title)
 else:
     normalized_title = text_type(title)
+normalized_title = normalized_title.replace(':', '')
 presentation_directory = os.path.join(download_directory, normalized_title)
 # Create a folder with the name of the presentation
 if not os.path.exists(presentation_directory):
@@ -81,7 +85,9 @@ if not os.path.exists('{}/slides'.format(presentation_directory)):
     os.makedirs('{}/slides'.format(presentation_directory))
 
 #Write content
-content = re.sub(r"/resource/presentations/[^']*?/en/", '', content)
+print('Replacing slide links in content...')
+content = re.sub(r"'[^']*?/resource/presentations/[^']*?/en/", '\'', content)
+print('Done replacing slide links in content')
 with open('{}/index.html'.format(presentation_directory), 'w') as f:
     f.write(content)
     f.flush()
@@ -97,15 +103,17 @@ for i, slide in enumerate(slides):
         continue
     print('\rDownloading slide {0} of {1}'.format(i+1, len(slides)), end='')
     sys.stdout.flush()  # Hack for Python 2
-    url = 'http://www.infoq.com{0}'.format(slide)
+    url = slide
     with open(full_path, 'wb') as f:
         f.write(requests.get(url).content)
 
 print()
+wait = input("PRESS ENTER TO CONTINUE.")
 
 # If the video file is already downloaded successfully, don't do anything else
 if os.path.exists(video_file):
     print('Video file already exists')
+    wait = input("PRESS ENTER TO CONTINUE.")
     sys.exit()
 
 # Download the video file. stream=True here is important to allow me to iterate
@@ -137,3 +145,5 @@ with open(downloaded_file, 'ab') as f:
 
 final_video_name = os.path.join(presentation_directory, video_file)
 os.rename(downloaded_file, final_video_name)
+
+wait = input("PRESS ENTER TO CONTINUE.")

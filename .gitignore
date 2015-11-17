@@ -1,2 +1,3 @@
 build/**
 infoq_downloader.spec
+/downloads
