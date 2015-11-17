@@ -9,6 +9,7 @@ import requests
 import cssselect
 import lxml.html
 import unicodedata
+from urllib.parse import urlparse
 
 if sys.version_info.major == 3:
     text_type = str
@@ -33,6 +34,7 @@ parser.add_argument('url', metavar='URL', type=str,
 # Parse the arguments passed to the script
 args = parser.parse_args()
 url = args.url
+url_scheme = urlparse(url).scheme
 
 # Tell infoq that I'm an iPad, so it gives me simpler HTML to parse & mp4 file
 # qto download
@@ -43,7 +45,7 @@ user_agent = (
 )
 
 # Start downloading
-print('Downloading HTML file')
+print('Downloading HTML file {0}'.format(url))
 
 content = requests.get(url, headers={'User-Agent': user_agent}).content
 html_doc = lxml.html.fromstring(content)
@@ -51,6 +53,9 @@ title = html_doc.find(".//title").text
 video_url = html_doc.cssselect('video > source')[0].attrib['src']
 video_file = os.path.split(video_url)[1]
 html_doc.cssselect('video > source')[0].attrib['src'] = video_file
+
+if not urlparse(video_url).scheme:
+	video_url = '{0}:{1}'.format(url_scheme, video_url)
 
 # Clean the page
 for elt in html_doc.cssselect(', '.join(e for e in cleanup_elements)):
@@ -107,9 +112,6 @@ for i, slide in enumerate(slides):
     with open(full_path, 'wb') as f:
         f.write(requests.get(url).content)
 
-print()
-wait = input("PRESS ENTER TO CONTINUE.")
-
 # If the video file is already downloaded successfully, don't do anything else
 if os.path.exists(video_file):
     print('Video file already exists')
@@ -121,6 +123,9 @@ if os.path.exists(video_file):
 downloaded_file = os.path.join(
     presentation_directory, '{}.part'.format(video_file)
 )
+
+print('Video URL is        {0}'.format(video_url))
+print('Local video file is {0}'.format(downloaded_file))
 
 if os.path.exists(downloaded_file):
     bytes_downloaded = os.stat(downloaded_file).st_size
@@ -146,4 +151,4 @@ with open(downloaded_file, 'ab') as f:
 final_video_name = os.path.join(presentation_directory, video_file)
 os.rename(downloaded_file, final_video_name)
 
-wait = input("PRESS ENTER TO CONTINUE.")
+wait = input("\nPRESS ENTER TO CONTINUE.")
